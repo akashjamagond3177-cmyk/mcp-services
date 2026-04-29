@@ -1,0 +1,45 @@
+import { getAssetDetails } from './client';
+import { formatAssetDetails } from './formatters';
+import type { ToolMeta } from '@/lib/tool-meta';
+
+/**
+ * @tool get_asset_details
+ * @server ereq
+ *
+ * Get details of assets/products from procurement requests.
+ * Use when the user asks about specific assets, products by category,
+ * or items linked to a particular eReq (e.g., "What assets are in category IT Equipment?").
+ */
+export const toolMeta: ToolMeta = {
+  name: 'get_asset_details',
+  serverId: 'ereq',
+  description:
+    'Get details of assets/products from procurement requests. ' +
+    'Use when the user asks about specific assets, products by category, ' +
+    'or items linked to a particular eReq (e.g., "What assets are in category IT Equipment?").',
+};
+
+export async function handleGetAssetDetails(args: Record<string, unknown>) {
+  try {
+    const opts = {
+      ereq_id: args.ereq_id ? String(args.ereq_id) : undefined,
+      cost_center: args.cost_center ? String(args.cost_center) : undefined,
+      category: args.category ? String(args.category) : undefined,
+    };
+
+    console.log(`[get_asset_details] Fetching assets, ereq_id: ${opts.ereq_id || 'all'}`);
+    const rows = await getAssetDetails(opts);
+    const formatted = formatAssetDetails(rows);
+
+    return {
+      content: [{ type: 'text' as const, text: formatted }],
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[get_asset_details] Error:', msg);
+    return {
+      content: [{ type: 'text' as const, text: `Error fetching asset details: ${msg}` }],
+      isError: true,
+    };
+  }
+}
